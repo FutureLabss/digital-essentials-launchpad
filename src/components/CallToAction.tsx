@@ -1,8 +1,21 @@
 
 import { Button } from "@/components/ui/button";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight, CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 const CallToAction = () => {
+  const handlePayment = () => {
+    // This would typically redirect to Paystack payment page
+    // For demo purposes, we'll open a new window to Paystack's site
+    // In a real implementation, you would use Paystack's JavaScript API or redirect to a specific checkout URL
+    window.open("https://paystack.com/pay/digitalessentials", "_blank");
+    
+    // Show toast notification
+    toast.success("Redirecting to secure payment page", {
+      description: "You'll be redirected to complete your payment"
+    });
+  };
+
   return (
     <section className="py-20 px-4 md:px-8 bg-gradient-to-b from-white to-blue-50">
       <div className="container mx-auto max-w-5xl">
@@ -28,9 +41,23 @@ const CallToAction = () => {
               </div>
             </div>
             
-            <Button className="bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl transition-all" size="lg">
-              Get Started Today! <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                className="bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl transition-all" 
+                size="lg"
+                onClick={handlePayment}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                Pay with Paystack
+              </Button>
+              
+              <Button 
+                className="bg-transparent hover:bg-white/10 text-white border border-white text-lg px-8 py-6 h-auto" 
+                size="lg"
+              >
+                Learn More <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

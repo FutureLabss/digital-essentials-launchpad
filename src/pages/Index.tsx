@@ -7,6 +7,7 @@ import Curriculum from "@/components/Curriculum";
 import CallToAction from "@/components/CallToAction";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Toaster } from "@/components/ui/sonner";
 
 const Index = () => {
   return (
@@ -18,6 +19,7 @@ const Index = () => {
       <Curriculum />
       <CallToAction />
       <Footer />
+      <Toaster />
     </div>
   );
 };
