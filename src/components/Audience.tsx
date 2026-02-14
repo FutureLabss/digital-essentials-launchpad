@@ -6,22 +6,22 @@ const Audience = () => {
     {
       icon: <Briefcase className="w-10 h-10 text-blue-600" />,
       title: "Job Seekers",
-      description: "Improve your chances of landing a digital job."
+      description: "Improve your chances of landing an AI-powered job."
     },
     {
       icon: <Lightbulb className="w-10 h-10 text-blue-600" />,
       title: "Entrepreneurs & Business Owners",
-      description: "Use digital tools to scale your business."
+      description: "Use AI tools to scale your business."
     },
     {
       icon: <Users className="w-10 h-10 text-blue-600" />,
       title: "Beginners & Non-Tech Professionals",
-      description: "Develop confidence in using technology."
+      description: "Develop confidence in using AI technology."
     },
     {
       icon: <GraduationCap className="w-10 h-10 text-blue-600" />,
       title: "Students & Career Changers",
-      description: "Get ready for the digital economy."
+      description: "Get ready for the AI-driven economy."
     }
   ];
 
@@ -31,7 +31,7 @@ const Audience = () => {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">🎯 Who Should Take This Course?</h2>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto">
-            Digital Essentials is perfect for anyone looking to gain practical digital skills, regardless of your background.
+            AI Essentials is perfect for anyone looking to gain practical AI skills, regardless of your background.
           </p>
         </div>
         

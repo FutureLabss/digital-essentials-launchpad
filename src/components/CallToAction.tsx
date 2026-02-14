@@ -31,7 +31,7 @@ const CallToAction = () => {
             </h2>
             
             <p className="text-lg md:text-xl opacity-90 mb-8 leading-relaxed max-w-3xl">
-              Don't let the digital world leave you behind! Join thousands of learners who are transforming their lives with Digital Essentials.
+              Don't let the AI revolution leave you behind! Join thousands of learners who are transforming their lives with AI Essentials.
             </p>
             
             <div className="mb-10">

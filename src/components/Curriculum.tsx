@@ -5,47 +5,47 @@ const Curriculum = () => {
   const weeks = [
     {
       week: 1,
-      title: "Digital Literacy & Online Safety",
-      description: "Learn the fundamentals of digital literacy and how to stay safe online."
+      title: "Introduction to AI & Machine Learning",
+      description: "Learn the fundamentals of AI, its history, and how machine learning works."
     },
     {
       week: 2,
-      title: "Basic Computer & Mobile Skills",
-      description: "Master essential computer and mobile device skills for productivity."
+      title: "AI Tools & Prompt Engineering",
+      description: "Master popular AI tools like ChatGPT, Gemini, and learn effective prompt writing."
     },
     {
       week: 3,
-      title: "Internet Navigation & Productivity Tools",
-      description: "Explore efficient internet use and popular productivity applications."
+      title: "AI for Productivity & Automation",
+      description: "Use AI to automate tasks, boost productivity, and streamline workflows."
     },
     {
       week: 4,
-      title: "Digital Communication & Remote Work",
-      description: "Develop skills for effective digital communication and remote collaboration."
+      title: "AI in Business & Marketing",
+      description: "Leverage AI for content creation, data analysis, and business strategy."
     },
     {
       week: 5,
-      title: "Cloud Computing & Data Management",
-      description: "Learn cloud services and basic data management techniques."
+      title: "AI Ethics, Safety & Future Trends",
+      description: "Understand responsible AI use, bias, privacy, and emerging trends."
     },
     {
       week: 6,
       title: "Capstone Project & Practical Application",
-      description: "Apply your new skills to complete a real-world digital project."
+      description: "Apply your new AI skills to complete a real-world project."
     }
   ];
 
   const skills = [
-    "Digital literacy fundamentals",
-    "Online safety and privacy protection",
-    "File management and organization",
-    "Effective email management",
-    "Video conferencing and remote work tools",
-    "Document creation and collaboration",
-    "Cloud storage and file sharing",
-    "Basic troubleshooting skills",
-    "Digital productivity workflows",
-    "Online research techniques"
+    "AI fundamentals & machine learning basics",
+    "Prompt engineering & AI tool mastery",
+    "AI-powered content creation",
+    "Automating workflows with AI",
+    "AI for data analysis & insights",
+    "AI in marketing & business strategy",
+    "Responsible AI use & ethics",
+    "Building AI-enhanced projects",
+    "AI productivity workflows",
+    "Future-proofing your career with AI"
   ];
 
   return (
@@ -54,7 +54,7 @@ const Curriculum = () => {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn (6-Week Breakdown)</h2>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto">
-            Our comprehensive curriculum is designed to progressively build your digital skills from the ground up.
+            Our comprehensive curriculum is designed to progressively build your AI skills from the ground up.
           </p>
         </div>
         

@@ -34,9 +34,9 @@ const Features = () => {
     <section id="features" className="py-20 px-4 md:px-8 bg-white">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📌 What Makes Digital Essentials Different?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📌 What Makes AI Essentials Different?</h2>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto">
-            Our course stands out because we focus on practical skills that actually matter in today's digital workplace.
+            Our course stands out because we focus on practical AI skills that actually matter in today's workplace.
           </p>
         </div>
         
