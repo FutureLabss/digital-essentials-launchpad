@@ -7,9 +7,9 @@ const Footer = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="grid md:grid-cols-4 gap-10">
           <div className="md:col-span-2">
-            <h2 className="text-xl font-bold mb-4">Digital Essentials</h2>
+            <h2 className="text-xl font-bold mb-4">AI Essentials</h2>
             <p className="text-slate-300 mb-6 max-w-md">
-              Empowering beginners with essential digital skills to thrive in today's digital world. Learn at your own pace, from anywhere.
+              Empowering beginners with essential AI skills to thrive in today's AI-driven world. Learn at your own pace, from anywhere.
             </p>
           </div>
           
@@ -33,10 +33,10 @@ const Footer = () => {
         
         <div className="border-t border-slate-700 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center">
           <p className="text-slate-400 text-sm">
-            © {new Date().getFullYear()} Digital Essentials. All rights reserved.
+            © {new Date().getFullYear()} AI Essentials. All rights reserved.
           </p>
           <p className="text-slate-400 text-sm flex items-center mt-4 md:mt-0">
-            Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> by Digital Essentials Team
+            Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> by AI Essentials Team
           </p>
         </div>
       </div>
