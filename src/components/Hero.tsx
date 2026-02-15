@@ -1,8 +1,10 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-20 px-4 md:px-8 lg:py-28">
       <div className="container mx-auto max-w-6xl">
@@ -15,7 +17,7 @@ const Hero = () => {
               The world is being transformed by AI—are you keeping up? Whether you want to land a remote job, start a business, or work smarter, AI Essentials gives you the skills you need to thrive.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 h-auto" size="lg">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 h-auto" size="lg" onClick={() => navigate("/auth")}>
                 Get Started Today! <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button variant="outline" className="text-lg px-8 py-6 h-auto border-slate-300" size="lg">
