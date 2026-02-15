@@ -2,8 +2,10 @@
 import { Button } from "@/components/ui/button";
 import { Clock, ArrowRight, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const CallToAction = () => {
+  const navigate = useNavigate();
   const handlePayment = () => {
     // This would typically redirect to Paystack payment page
     // For demo purposes, we'll open a new window to Paystack's site
