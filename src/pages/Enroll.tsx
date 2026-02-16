@@ -7,16 +7,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CreditCard, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
+
 const Enroll = () => {
   const { courseId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [alreadyEnrolled, setAlreadyEnrolled] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    // Load Paystack inline script
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
       const [courseRes, enrollRes] = await Promise.all([
         supabase.from("courses").select("*").eq("id", courseId!).single(),
         supabase.from("enrollments").select("payment_status").eq("course_id", courseId!).eq("user_id", user!.id).maybeSingle(),
@@ -25,12 +41,68 @@ const Enroll = () => {
       if (enrollRes.data?.payment_status === "completed") setAlreadyEnrolled(true);
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [courseId, user]);
 
+  const completeEnrollment = async (reference: string) => {
+    const { data: existing } = await supabase
+      .from("enrollments")
+      .select("id, payment_status")
+      .eq("course_id", courseId!)
+      .eq("user_id", user!.id)
+      .maybeSingle();
+
+    if (existing?.payment_status === "completed") {
+      toast.success("Already enrolled!");
+      navigate(`/course/${courseId}`);
+      return;
+    }
+
+    const payload = {
+      payment_status: "completed",
+      payment_provider: "paystack",
+      payment_reference: reference,
+      amount_paid: course.price,
+    };
+
+    const { error } = existing
+      ? await supabase.from("enrollments").update(payload).eq("id", existing.id)
+      : await supabase.from("enrollments").insert({ ...payload, user_id: user!.id, course_id: courseId! });
+
+    if (error) {
+      toast.error("Failed to activate enrollment. Contact support.");
+      console.error(error);
+    } else {
+      toast.success("Payment confirmed! Course unlocked.");
+      navigate(`/course/${courseId}`);
+    }
+  };
+
   const handlePaystack = () => {
-    const callbackUrl = `${window.location.origin}/payment-success?course_id=${courseId}`;
-    window.location.href = `https://paystack.com/pay/digitalessentials?callback_url=${encodeURIComponent(callbackUrl)}`;
+    if (!window.PaystackPop) {
+      toast.error("Payment system is loading, please try again.");
+      return;
+    }
+
+    setPaying(true);
+
+    const handler = window.PaystackPop.setup({
+      key: "pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Paystack public key
+      email: user!.email,
+      amount: course.price * 100, // Paystack expects kobo
+      currency: course.currency || "NGN",
+      metadata: { course_id: courseId, user_id: user!.id },
+      onClose: () => {
+        setPaying(false);
+        toast.info("Payment cancelled.");
+      },
+      callback: (response: { reference: string }) => {
+        setPaying(false);
+        completeEnrollment(response.reference);
+      },
+    });
+
+    handler.openIframe();
   };
 
   if (loading) {
@@ -91,8 +163,13 @@ const Enroll = () => {
             </div>
 
             <div className="space-y-3">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base" onClick={handlePaystack}>
-                <CreditCard className="mr-2 h-5 w-5" /> Pay with Paystack
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base"
+                onClick={handlePaystack}
+                disabled={paying}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                {paying ? "Processing..." : "Pay with Paystack"}
               </Button>
             </div>
 
