@@ -179,31 +179,79 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          age_range?: string | null
+          career_goal?: string | null
+          consent_data_usage?: boolean
+          consent_receive_communications?: boolean
+          country_of_residence?: string | null
+          current_skill_level?: string | null
           created_at: string
+          date_of_birth?: string | null
+          employment_status?: string | null
           email: string
+          full_legal_name?: string
           full_name: string
+          gender?: string | null
+          highest_education_level?: string | null
           id: string
+          learning_interest_track?: string | null
+          onboarding_completed?: boolean
           phone: string | null
+          primary_reason_for_joining?: string | null
+          referral_source?: string | null
+          state_of_residence?: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          age_range?: string | null
+          career_goal?: string | null
+          consent_data_usage?: boolean
+          consent_receive_communications?: boolean
+          country_of_residence?: string | null
+          current_skill_level?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          employment_status?: string | null
           email?: string
+          full_legal_name?: string
           full_name?: string
+          gender?: string | null
+          highest_education_level?: string | null
           id?: string
+          learning_interest_track?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
+          primary_reason_for_joining?: string | null
+          referral_source?: string | null
+          state_of_residence?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          age_range?: string | null
+          career_goal?: string | null
+          consent_data_usage?: boolean
+          consent_receive_communications?: boolean
+          country_of_residence?: string | null
+          current_skill_level?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          employment_status?: string | null
           email?: string
+          full_legal_name?: string
           full_name?: string
+          gender?: string | null
+          highest_education_level?: string | null
           id?: string
+          learning_interest_track?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
+          primary_reason_for_joining?: string | null
+          referral_source?: string | null
+          state_of_residence?: string | null
           updated_at?: string
           user_id?: string
         }
