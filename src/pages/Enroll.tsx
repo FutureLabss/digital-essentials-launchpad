@@ -87,7 +87,7 @@ const Enroll = () => {
     setPaying(true);
 
     const handler = window.PaystackPop.setup({
-      key: "pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Paystack public key
+      key: "pk_test_f3a5c2ef20261562a07f128e4de9335605443769",
       email: user!.email,
       amount: course.price * 100, // Paystack expects kobo
       currency: course.currency || "NGN",
