@@ -29,8 +29,8 @@ const Enroll = () => {
   }, [courseId, user]);
 
   const handlePaystack = () => {
-    window.open("https://paystack.com/pay/digitalessentials", "_blank");
-    toast.success("Redirecting to Paystack for payment");
+    const callbackUrl = `${window.location.origin}/payment-success?course_id=${courseId}`;
+    window.location.href = `https://paystack.com/pay/digitalessentials?callback_url=${encodeURIComponent(callbackUrl)}`;
   };
 
   if (loading) {
