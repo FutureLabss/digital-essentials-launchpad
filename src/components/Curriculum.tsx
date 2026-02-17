@@ -62,6 +62,33 @@ const Curriculum = () => {
     gcTime: 10 * 60 * 1000,
   });
 
+  // Get user's lesson progress to check Week 1 completion
+  const { data: lessonProgress } = useQuery({
+    queryKey: ["lesson-progress", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      try {
+        const { data, error } = await supabase
+          .from("lesson_progress")
+          .select("lesson_id, completed")
+          .eq("user_id", user.id);
+        
+        if (error) {
+          console.error("Lesson progress query error:", error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error("Lesson progress fetch error:", err);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   const { data: lessons, error: lessonsError } = useQuery({
     queryKey: ["course-lessons"],
     queryFn: async () => {
@@ -103,6 +130,13 @@ const Curriculum = () => {
     // Get enrolled course IDs
     const enrolledCourseIds = enrollments ? enrollments.map(e => e.course_id) : [];
     
+    // Check if Week 1 is completed to unlock Week 2
+    const week1Course = sortedCourses.find(c => c.title?.includes("Week 1") || c.created_at === sortedCourses[0]?.created_at);
+    const week1Lessons = lessons.filter(l => l.course_id === week1Course?.id);
+    const week1Completed = week1Lessons.length > 0 && week1Lessons.every(lesson => 
+      lessonProgress.some(progress => progress.lesson_id === lesson.id && progress.completed)
+    );
+    
     return sortedCourses.map((course, index) => {
       const courseLessons = lessons
         .filter(l => l.course_id === course.id)
@@ -110,7 +144,12 @@ const Curriculum = () => {
       
       const weekNumber = index + 1;
       const isEnrolled = enrolledCourseIds.includes(course.id);
-      const canAccess = weekNumber === 1 || isEnrolled; // Week 1 always accessible, others need enrollment
+      
+      // Access logic: Week 1 always accessible, Week 2 accessible if Week 1 completed, others need enrollment
+      let canAccess = weekNumber === 1 || isEnrolled;
+      if (weekNumber === 2 && !isEnrolled && week1Completed) {
+        canAccess = true; // Unlock Week 2 if Week 1 is completed
+      }
       
       return {
         week: weekNumber,
@@ -245,7 +284,10 @@ const Curriculum = () => {
                   <h3 className="text-xl font-bold text-slate-900">{week.title}</h3>
                   {week.isLocked && !week.isEnrolled && (
                     <span className="text-sm text-orange-600 font-medium">
-                      Enroll in Week 1 to unlock
+                      {week.week === 2 
+                        ? "Complete Week 1 to unlock" 
+                        : "Enroll in Week 1 to unlock"
+                      }
                     </span>
                   )}
                 </div>
