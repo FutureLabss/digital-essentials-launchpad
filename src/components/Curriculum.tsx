@@ -1,39 +1,59 @@
 
 import { Flame, BookOpen } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase";
+
+const supabase = createClient();
 
 const Curriculum = () => {
-  const weeks = [
-    {
-      week: 1,
-      title: "Introduction to AI & Machine Learning",
-      description: "Learn the fundamentals of AI, its history, and how machine learning works."
+  const { data: courses, isLoading } = useQuery({
+    queryKey: ["published-courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, title, description, short_description, image_url, price, currency")
+        .eq("is_published", true)
+        .order("created_at", { ascending: true });
+      
+      if (error) throw error;
+      return data;
     },
-    {
-      week: 2,
-      title: "AI Tools & Prompt Engineering",
-      description: "Master popular AI tools like ChatGPT, Gemini, and learn effective prompt writing."
+  });
+
+  const { data: lessons } = useQuery({
+    queryKey: ["course-lessons"],
+    queryFn: async () => {
+      if (!courses || courses.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("id, course_id, title, content, sort_order, lesson_type")
+        .in("course_id", courses.map(c => c.id))
+        .order("sort_order", { ascending: true });
+      
+      if (error) throw error;
+      return data;
     },
-    {
-      week: 3,
-      title: "AI for Productivity & Automation",
-      description: "Use AI to automate tasks, boost productivity, and streamline workflows."
-    },
-    {
-      week: 4,
-      title: "AI in Business & Marketing",
-      description: "Leverage AI for content creation, data analysis, and business strategy."
-    },
-    {
-      week: 5,
-      title: "AI Ethics, Safety & Future Trends",
-      description: "Understand responsible AI use, bias, privacy, and emerging trends."
-    },
-    {
-      week: 6,
-      title: "Capstone Project & Practical Application",
-      description: "Apply your new AI skills to complete a real-world project."
-    }
-  ];
+    enabled: !!courses && courses.length > 0,
+  });
+
+  // Group lessons by course/week
+  const getWeeksFromData = () => {
+    if (!courses || !lessons) return [];
+    
+    return courses.map((course, index) => {
+      const courseLessons = lessons.filter(l => l.course_id === course.id);
+      const weekNumber = index + 1;
+      
+      return {
+        week: weekNumber,
+        title: course.title || `Week ${weekNumber}`,
+        description: course.short_description || course.description || "",
+        lessons: courseLessons,
+        course_id: course.id
+      };
+    });
+  };
 
   const skills = [
     "AI fundamentals & machine learning basics",
@@ -48,11 +68,28 @@ const Curriculum = () => {
     "Future-proofing your career with AI"
   ];
 
+  if (isLoading) {
+    return (
+      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
+            <p className="text-lg text-slate-700">Loading curriculum...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const weeks = getWeeksFromData();
+
   return (
     <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn (6-Week Breakdown)</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">
+            📚 What You'll Learn ({weeks.length}-Week Breakdown)
+          </h2>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto">
             Our comprehensive curriculum is designed to progressively build your AI skills from the ground up.
           </p>
@@ -92,9 +129,24 @@ const Curriculum = () => {
                   <Flame className="w-6 h-6 mr-2" />
                   <span className="font-bold text-lg">Week {week.week}</span>
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-xl font-bold mb-2 text-slate-900">{week.title}</h3>
-                  <p className="text-slate-700">{week.description}</p>
+                  <p className="text-slate-700 mb-4">{week.description}</p>
+                  
+                  {week.lessons && week.lessons.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-slate-800 mb-2">Lessons:</h4>
+                      <div className="grid gap-2">
+                        {week.lessons.map((lesson) => (
+                          <div key={lesson.id} className="flex items-center gap-2 text-sm text-slate-600">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                            <span>{lesson.title}</span>
+                            <span className="text-xs text-slate-400">({lesson.lesson_type})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
