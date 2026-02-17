@@ -104,45 +104,47 @@ const Onboarding = () => {
     }
 
     setSubmitting(true);
+    try {
+      const payload = {
+        user_id: user.id,
+        full_legal_name: fullLegalName.trim(),
+        full_name: (profile?.full_name || fullLegalName).trim(),
+        email: emailAddress.trim(),
+        phone: phoneNumber.trim(),
+        avatar_url: profilePhotoUrl.trim() || null,
+        date_of_birth: dateOfBirth || null,
+        age_range: ageRange || null,
+        gender: gender || null,
+        country_of_residence: countryOfResidence.trim(),
+        state_of_residence: stateOfResidence.trim(),
+        highest_education_level: highestEducationLevel,
+        employment_status: employmentStatus,
+        primary_reason_for_joining: primaryReasonForJoining,
+        learning_interest_track: learningInterestTrack,
+        current_skill_level: currentSkillLevel,
+        referral_source: referralSource,
+        career_goal: careerGoal.trim(),
+        consent_data_usage: consentDataUsage,
+        consent_receive_communications: consentReceiveCommunications,
+        onboarding_completed: true,
+      };
 
-    const payload = {
-      user_id: user.id,
-      full_legal_name: fullLegalName.trim(),
-      full_name: (profile?.full_name || fullLegalName).trim(),
-      email: emailAddress.trim(),
-      phone: phoneNumber.trim(),
-      avatar_url: profilePhotoUrl.trim() || null,
-      date_of_birth: dateOfBirth || null,
-      age_range: ageRange || null,
-      gender: gender || null,
-      country_of_residence: countryOfResidence.trim(),
-      state_of_residence: stateOfResidence.trim(),
-      highest_education_level: highestEducationLevel,
-      employment_status: employmentStatus,
-      primary_reason_for_joining: primaryReasonForJoining,
-      learning_interest_track: learningInterestTrack,
-      current_skill_level: currentSkillLevel,
-      referral_source: referralSource,
-      career_goal: careerGoal.trim(),
-      consent_data_usage: consentDataUsage,
-      consent_receive_communications: consentReceiveCommunications,
-      onboarding_completed: true,
-    };
+      const { error } = await supabase
+        .from("profiles")
+        .upsert(payload, { onConflict: "user_id" });
 
-    const { error } = await supabase
-      .from("profiles")
-      .upsert(payload, { onConflict: "user_id" });
+      if (error) {
+        console.error("Onboarding save error:", error);
+        toast.error(error.message || "Failed to save your profile. Please try again.");
+        return;
+      }
 
-    if (error) {
-      toast.error("Failed to save your profile. Please try again.");
+      await refreshProfile();
+      toast.success("Profile saved! Welcome onboard.");
+      navigate("/dashboard", { replace: true });
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    await refreshProfile();
-    toast.success("Profile saved! Welcome onboard.");
-    navigate("/dashboard", { replace: true });
-    setSubmitting(false);
   };
 
   return (
