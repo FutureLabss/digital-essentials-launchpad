@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 const supabase = createClient();
 
 const Curriculum = () => {
-  const { data: courses, isLoading } = useQuery({
+  const { data: courses, isLoading, error } = useQuery({
     queryKey: ["published-courses"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -18,9 +18,13 @@ const Curriculum = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const { data: lessons } = useQuery({
+  const { data: lessons, error: lessonsError } = useQuery({
     queryKey: ["course-lessons"],
     queryFn: async () => {
       if (!courses || courses.length === 0) return [];
@@ -35,6 +39,10 @@ const Curriculum = () => {
       return data;
     },
     enabled: !!courses && courses.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Group lessons by course/week
@@ -81,7 +89,44 @@ const Curriculum = () => {
     );
   }
 
+  if (error || lessonsError) {
+    return (
+      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
+            <p className="text-lg text-slate-700">
+              Unable to load curriculum at the moment. Please refresh the page or try again later.
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const weeks = getWeeksFromData();
+
+  // Handle case where no courses/lessons are found
+  if (!weeks || weeks.length === 0) {
+    return (
+      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
+            <p className="text-lg text-slate-700">
+              No courses are available at the moment. Please check back later.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
