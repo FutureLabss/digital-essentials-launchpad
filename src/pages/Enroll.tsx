@@ -84,12 +84,19 @@ const Enroll = () => {
       return;
     }
 
+    if (!course || !course.price || course.price <= 0) {
+      toast.error("Invalid course price. Please contact support.");
+      return;
+    }
+
     setPaying(true);
+
+    const amountInKobo = Math.round(course.price * 100); // Convert to kobo and ensure it's an integer
 
     const handler = window.PaystackPop.setup({
       key: "pk_test_f3a5c2ef20261562a07f128e4de9335605443769",
       email: user!.email,
-      amount: course.price * 100, // Paystack expects kobo
+      amount: amountInKobo,
       currency: course.currency || "NGN",
       metadata: { course_id: courseId, user_id: user!.id },
       onClose: () => {
