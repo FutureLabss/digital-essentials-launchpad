@@ -14,7 +14,7 @@ const Curriculum = () => {
       try {
         const { data, error } = await supabase
           .from("courses")
-          .select("id, title, description, short_description, image_url, price, currency")
+          .select("id, title, description, short_description, image_url, price, currency, created_at")
           .eq("is_published", true)
           .order("created_at", { ascending: true });
         
