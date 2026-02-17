@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Circle, PlayCircle, FileText, Download, ArrowLeft } from "lucide-react";
+import { CheckCircle, Circle, PlayCircle, FileText, Download, ArrowLeft, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
 interface Lesson {
@@ -148,6 +148,20 @@ const CourseDetail = () => {
                 </div>
               </button>
             ))}
+            
+            {/* Quiz Button - Show after lesson 8 (quiz is lesson 9 - last module) */}
+            {lessons.length > 8 && isCompleted(lessons[7].id) && (
+              <Link
+                to={`/course/${courseId}/quiz`}
+                className="w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors bg-green-50 border border-green-200 hover:bg-green-100"
+              >
+                <GraduationCap className="h-5 w-5 text-green-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Course Quiz</p>
+                  <p className="text-xs text-muted-foreground">Test your knowledge</p>
+                </div>
+              </Link>
+            )}
           </div>
 
           {/* Main Content */}
