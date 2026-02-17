@@ -1,11 +1,13 @@
 
-import { Flame, BookOpen } from "lucide-react";
+import { Flame, BookOpen, Lock, Unlock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 const supabase = createClient();
 
 const Curriculum = () => {
+  const { user } = useAuth();
   const { data: courses, isLoading, error } = useQuery({
     queryKey: ["published-courses"],
     queryFn: async () => {
@@ -27,9 +29,37 @@ const Curriculum = () => {
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2, // Reduced retry attempts
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  // Get user's enrollments and progress
+  const { data: enrollments } = useQuery({
+    queryKey: ["user-enrollments", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      try {
+        const { data, error } = await supabase
+          .from("enrollments")
+          .select("course_id, payment_status")
+          .eq("user_id", user.id)
+          .eq("payment_status", "completed");
+        
+        if (error) {
+          console.error("Enrollments query error:", error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error("Enrollments fetch error:", err);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const { data: lessons, error: lessonsError } = useQuery({
@@ -56,25 +86,40 @@ const Curriculum = () => {
     },
     enabled: !!courses && courses.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2, // Reduced retry attempts
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Group lessons by course/week
+  // Group lessons by course/week with proper sequencing and access control
   const getWeeksFromData = () => {
     if (!courses || !lessons) return [];
     
-    return courses.map((course, index) => {
-      const courseLessons = lessons.filter(l => l.course_id === course.id);
+    // Sort courses by created_at to ensure proper week ordering
+    const sortedCourses = [...courses].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    
+    // Get enrolled course IDs
+    const enrolledCourseIds = enrollments ? enrollments.map(e => e.course_id) : [];
+    
+    return sortedCourses.map((course, index) => {
+      const courseLessons = lessons
+        .filter(l => l.course_id === course.id)
+        .sort((a, b) => a.sort_order - b.sort_order); // Sort lessons within each course
+      
       const weekNumber = index + 1;
+      const isEnrolled = enrolledCourseIds.includes(course.id);
+      const canAccess = weekNumber === 1 || isEnrolled; // Week 1 always accessible, others need enrollment
       
       return {
         week: weekNumber,
         title: course.title || `Week ${weekNumber}`,
         description: course.short_description || course.description || "",
         lessons: courseLessons,
-        course_id: course.id
+        course_id: course.id,
+        isLocked: !canAccess,
+        isEnrolled
       };
     });
   };
@@ -94,15 +139,15 @@ const Curriculum = () => {
 
   if (isLoading) {
     return (
-      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
-            <p className="text-lg text-slate-700">Loading curriculum...</p>
-          </div>
+    <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
+      <div className="container mx-auto max-w-6xl">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
+          <p className="text-lg text-slate-700">Loading curriculum...</p>
         </div>
-      </section>
-    );
+      </div>
+    </section>
+  );
   }
 
   const weeks = getWeeksFromData();
@@ -110,17 +155,17 @@ const Curriculum = () => {
   // Handle case where no courses/lessons are found
   if (!weeks || weeks.length === 0) {
     return (
-      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
-            <p className="text-lg text-slate-700">
-              No courses are available at the moment. Please check back later.
-            </p>
-          </div>
+    <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
+      <div className="container mx-auto max-w-6xl">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
+          <p className="text-lg text-slate-700">
+            No courses are available at the moment. Please check back later.
+          </p>
         </div>
-      </section>
-    );
+      </div>
+    </section>
+  );
   }
 
   return (
@@ -158,43 +203,81 @@ const Curriculum = () => {
           </div>
         </div>
         
-        <div className="space-y-6">
-          {weeks.map((week) => (
-            <div 
-              key={week.week} 
-              className="bg-slate-50 rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 bg-blue-600 text-white p-4 rounded-lg flex items-center justify-center">
-                  <Flame className="w-6 h-6 mr-2" />
-                  <span className="font-bold text-lg">Week {week.week}</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2 text-slate-900">{week.title}</h3>
-                  <p className="text-slate-700 mb-4">{week.description}</p>
-                  
-                  {week.lessons && week.lessons.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold text-slate-800 mb-2">Lessons:</h4>
-                      <div className="grid gap-2">
-                        {week.lessons.map((lesson) => (
-                          <div key={lesson.id} className="flex items-center gap-2 text-sm text-slate-600">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                            <span>{lesson.title}</span>
-                            <span className="text-xs text-slate-400">({lesson.lesson_type})</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          {skills.map((skill, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <div className="bg-green-500 text-white p-1 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
               </div>
+              <span className="text-slate-700">{skill}</span>
             </div>
           ))}
         </div>
       </div>
+      
+      <div className="space-y-6">
+        {weeks.map((week) => (
+          <div 
+            key={week.week} 
+            className={`rounded-xl p-6 shadow-sm border transition-shadow ${
+              week.isLocked 
+                ? 'bg-gray-100 border-gray-200 opacity-75' 
+                : 'bg-slate-50 border-slate-100 hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-start space-x-4">
+              <div className={`flex-shrink-0 p-4 rounded-lg flex items-center justify-center ${
+                week.isLocked 
+                  ? 'bg-gray-400 text-white' 
+                  : 'bg-blue-600 text-white'
+              }`}>
+                {week.isLocked ? (
+                  <Lock className="w-6 h-6 mr-2" />
+                ) : (
+                  <Unlock className="w-6 h-6 mr-2" />
+                )}
+                <span className="font-bold text-lg">Week {week.week}</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-bold text-slate-900">{week.title}</h3>
+                  {week.isLocked && !week.isEnrolled && (
+                    <span className="text-sm text-orange-600 font-medium">
+                      Enroll in Week 1 to unlock
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-700 mb-4">{week.description}</p>
+                
+                {week.lessons && week.lessons.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-slate-800 mb-2">
+                      {week.isLocked ? 'Lessons (Locked)' : 'Lessons:'}
+                    </h4>
+                    <div className="grid gap-2">
+                      {week.lessons.map((lesson) => (
+                        <div key={lesson.id} className={`flex items-center gap-2 text-sm ${
+                          week.isLocked ? 'text-gray-500' : 'text-slate-600'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            week.isLocked ? 'bg-gray-400' : 'bg-blue-400'
+                          }`}></div>
+                          <span>{lesson.title}</span>
+                          <span className="text-xs text-slate-400">({lesson.lesson_type})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        </div>
     </section>
   );
-};
+}
 
 export default Curriculum;
