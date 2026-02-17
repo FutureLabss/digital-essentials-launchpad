@@ -84,7 +84,7 @@ const Enroll = () => {
       return;
     }
 
-    if (!course || !course.price || course.price <= 0) {
+    if (!course || course.price === null || course.price < 0) {
       toast.error("Invalid course price. Please contact support.");
       return;
     }

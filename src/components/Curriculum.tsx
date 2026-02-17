@@ -145,10 +145,16 @@ const Curriculum = () => {
       const weekNumber = index + 1;
       const isEnrolled = enrolledCourseIds.includes(course.id);
       
-      // Access logic: Week 1 always accessible, Week 2 accessible if Week 1 completed, others need enrollment
+      // Access logic: Week 1 always accessible, Week 2 accessible if Week 1 completed OR if free, others need enrollment
       let canAccess = weekNumber === 1 || isEnrolled;
-      if (weekNumber === 2 && !isEnrolled && week1Completed) {
-        canAccess = true; // Unlock Week 2 if Week 1 is completed
+      if (weekNumber === 2) {
+        // Week 2 is accessible if enrolled OR if Week 1 is completed OR if it's a free course
+        const week2Course = sortedCourses.find(c => c.title?.includes("Week 2") || c.created_at === sortedCourses[1]?.created_at);
+        if (week2Course && week2Course.price === 0) {
+          canAccess = true; // Free course - always accessible
+        } else if (week1Completed) {
+          canAccess = true; // Paid course but Week 1 completed - unlock
+        }
       }
       
       return {
