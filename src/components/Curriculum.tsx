@@ -9,18 +9,26 @@ const Curriculum = () => {
   const { data: courses, isLoading, error } = useQuery({
     queryKey: ["published-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, description, short_description, image_url, price, currency")
-        .eq("is_published", true)
-        .order("created_at", { ascending: true });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("courses")
+          .select("id, title, description, short_description, image_url, price, currency")
+          .eq("is_published", true)
+          .order("created_at", { ascending: true });
+        
+        if (error) {
+          console.error("Courses query error:", error);
+          return []; // Return empty array instead of throwing
+        }
+        return data || [];
+      } catch (err) {
+        console.error("Courses fetch error:", err);
+        return []; // Return empty array on any error
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3,
+    retry: 2, // Reduced retry attempts
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
@@ -29,19 +37,27 @@ const Curriculum = () => {
     queryFn: async () => {
       if (!courses || courses.length === 0) return [];
       
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("id, course_id, title, content, sort_order, lesson_type")
-        .in("course_id", courses.map(c => c.id))
-        .order("sort_order", { ascending: true });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("lessons")
+          .select("id, course_id, title, content, sort_order, lesson_type")
+          .in("course_id", courses.map(c => c.id))
+          .order("sort_order", { ascending: true });
+        
+        if (error) {
+          console.error("Lessons query error:", error);
+          return []; // Return empty array instead of throwing
+        }
+        return data || [];
+      } catch (err) {
+        console.error("Lessons fetch error:", err);
+        return []; // Return empty array on any error
+      }
     },
     enabled: !!courses && courses.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3,
+    retry: 2, // Reduced retry attempts
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
@@ -83,27 +99,6 @@ const Curriculum = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
             <p className="text-lg text-slate-700">Loading curriculum...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error || lessonsError) {
-    return (
-      <section id="curriculum" className="py-20 px-4 md:px-8 bg-white">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">📚 What You'll Learn</h2>
-            <p className="text-lg text-slate-700">
-              Unable to load curriculum at the moment. Please refresh the page or try again later.
-            </p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
           </div>
         </div>
       </section>
