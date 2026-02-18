@@ -31,24 +31,72 @@ const CourseDetail = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<LessonProgress[]>([]);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [activeWeek, setActiveWeek] = useState<number>(1);
   const [loading, setLoading] = useState(true);
+
+  // Group lessons by weeks
+  const getLessonsByWeek = (allLessons: Lesson[]) => {
+    const weeks: { [key: number]: Lesson[] } = {};
+    const LESSONS_PER_WEEK = 6;
+
+    allLessons.forEach((lesson, index) => {
+      const weekNumber = Math.floor((lesson.sort_order - 1) / LESSONS_PER_WEEK) + 1;
+      if (!weeks[weekNumber]) {
+        weeks[weekNumber] = [];
+      }
+      weeks[weekNumber].push(lesson);
+    });
+
+    return weeks;
+  };
+
+  const lessonsByWeek = getLessonsByWeek(lessons);
+  const currentWeekLessons = lessonsByWeek[activeWeek] || [];
 
   useEffect(() => {
     const fetchCourse = async () => {
-      const [courseRes, lessonsRes, progressRes] = await Promise.all([
-        supabase.from("courses").select("*").eq("id", courseId!).single(),
-        supabase.from("lessons").select("*").eq("course_id", courseId!).order("sort_order"),
-        supabase.from("lesson_progress").select("lesson_id, completed").eq("user_id", user!.id),
-      ]);
-
-      if (courseRes.data) setCourse(courseRes.data);
-      if (lessonsRes.data) {
-        const l = lessonsRes.data as Lesson[];
-        setLessons(l);
-        if (l.length > 0) setActiveLesson(l[0]);
+      if (!courseId || !user?.id) {
+        setLoading(false);
+        return;
       }
-      if (progressRes.data) setProgress(progressRes.data as LessonProgress[]);
-      setLoading(false);
+
+      try {
+        const [courseRes, lessonsRes, progressRes] = await Promise.all([
+          supabase.from("courses").select("*").eq("id", courseId).single(),
+          supabase.from("lessons").select("*").eq("course_id", courseId).order("sort_order"),
+          supabase.from("lesson_progress").select("lesson_id, completed").eq("user_id", user.id),
+        ]);
+
+        if (courseRes.error) {
+          console.error("Course fetch error:", courseRes.error);
+          // Don't throw, just continue with empty state
+        } else if (courseRes.data) {
+          setCourse(courseRes.data);
+        }
+
+        if (lessonsRes.error) {
+          console.error("Lessons fetch error:", lessonsRes.error);
+          // Don't throw, just continue with empty state
+        } else if (lessonsRes.data) {
+          const l = lessonsRes.data as Lesson[];
+          setLessons(l);
+          // Set active lesson from current week (first lesson of week 1 initially)
+          const week1Lessons = getLessonsByWeek(l)[1] || [];
+          if (week1Lessons.length > 0) setActiveLesson(week1Lessons[0]);
+        }
+
+        if (progressRes.error) {
+          console.error("Progress fetch error:", progressRes.error);
+          // Don't throw, just continue with empty state
+        } else if (progressRes.data) {
+          setProgress(progressRes.data as LessonProgress[]);
+        }
+      } catch (error) {
+        console.error("CourseDetail fetch error:", error);
+        // Don't throw, just continue with empty state
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchCourse();
@@ -62,19 +110,31 @@ const CourseDetail = () => {
     : 0;
 
   const markComplete = async (lessonId: string) => {
-    const { error } = await supabase.from("lesson_progress").upsert(
-      { user_id: user!.id, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
-      { onConflict: "user_id,lesson_id" }
-    );
-    if (error) {
+    if (!user?.id) {
+      toast.error("Please log in to mark lessons complete");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("lesson_progress").upsert(
+        { user_id: user.id, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
+        { onConflict: "user_id,lesson_id" }
+      );
+      
+      if (error) {
+        console.error("Mark complete error:", error);
+        toast.error("Failed to mark lesson complete");
+      } else {
+        setProgress((prev) => {
+          const existing = prev.find((p) => p.lesson_id === lessonId);
+          if (existing) return prev.map((p) => (p.lesson_id === lessonId ? { ...p, completed: true } : p));
+          return [...prev, { lesson_id: lessonId, completed: true }];
+        });
+        toast.success("Lesson marked as complete!");
+      }
+    } catch (error) {
+      console.error("Mark complete catch error:", error);
       toast.error("Failed to mark lesson complete");
-    } else {
-      setProgress((prev) => {
-        const existing = prev.find((p) => p.lesson_id === lessonId);
-        if (existing) return prev.map((p) => (p.lesson_id === lessonId ? { ...p, completed: true } : p));
-        return [...prev, { lesson_id: lessonId, completed: true }];
-      });
-      toast.success("Lesson marked as complete!");
     }
   };
 
@@ -123,11 +183,68 @@ const CourseDetail = () => {
           </CardContent>
         </Card>
 
+        {/* Week Navigation */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            {Object.keys(lessonsByWeek).map((weekNum) => {
+              const weekNumber = parseInt(weekNum);
+              const weekLessons = lessonsByWeek[weekNumber];
+              const isActive = activeWeek === weekNumber;
+              
+              // Check if week is accessible
+              const enrolledCourseIds = []; // This would come from enrollment context
+              const isEnrolled = false; // This would be determined by enrollment status
+              
+              let isAccessible = weekNumber === 1; // Week 1 always accessible
+              
+              if (weekNumber > 1) {
+                if (isEnrolled) {
+                  isAccessible = true;
+                } else {
+                  // Check if previous week is completed
+                  const prevWeekLessons = lessonsByWeek[weekNumber - 1] || [];
+                  const prevWeekCompleted = prevWeekLessons.every(lesson => 
+                    progress.some(p => p.lesson_id === lesson.id && p.completed)
+                  );
+                  isAccessible = prevWeekCompleted;
+                }
+              }
+              
+              return (
+                <button
+                  key={weekNumber}
+                  onClick={() => {
+                    if (isAccessible) {
+                      setActiveWeek(weekNumber);
+                      if (weekLessons.length > 0) {
+                        setActiveLesson(weekLessons[0]);
+                      }
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : isAccessible
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      : "bg-gray-50 text-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!isAccessible}
+                >
+                  Week {weekNumber}
+                  {!isAccessible && <span className="ml-2">🔒</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          {/* Sidebar - Lesson List */}
+          {/* Sidebar - Lesson List for Current Week */}
           <div className="space-y-2">
-            <h3 className="font-semibold text-slate-900 mb-3">Lessons</h3>
-            {lessons.map((lesson, i) => (
+            <h3 className="font-semibold text-slate-900 mb-3">
+              Week {activeWeek} Lessons
+            </h3>
+            {currentWeekLessons.map((lesson, i) => (
               <button
                 key={lesson.id}
                 onClick={() => setActiveLesson(lesson)}
@@ -148,20 +265,25 @@ const CourseDetail = () => {
                 </div>
               </button>
             ))}
-            
-            {/* Quiz Button - Show after lesson 8 (quiz is lesson 9 - last module) */}
-            {lessons.length > 8 && isCompleted(lessons[7].id) && (
-              <Link
-                to={`/course/${courseId}/quiz`}
-                className="w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors bg-green-50 border border-green-200 hover:bg-green-100"
-              >
-                <GraduationCap className="h-5 w-5 text-green-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">Course Quiz</p>
-                  <p className="text-xs text-muted-foreground">Test your knowledge</p>
-                </div>
-              </Link>
-            )}
+                        {/* Quiz Button - Show after completing Week 6 */}
+              {Object.keys(lessonsByWeek).length >= 6 && (() => {
+                const week6Lessons = lessonsByWeek[6] || [];
+                const week6Completed = week6Lessons.every(lesson => 
+                  progress.some(p => p.lesson_id === lesson.id && p.completed)
+                );
+                return week6Completed;
+              })() && (
+                <Link
+                  to={`/course/${courseId}/quiz`}
+                  className="w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors bg-green-50 border border-green-200 hover:bg-green-100"
+                >
+                  <GraduationCap className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Final Course Quiz</p>
+                    <p className="text-xs text-muted-foreground">Test your AI knowledge</p>
+                  </div>
+                </Link>
+              )}
           </div>
 
           {/* Main Content */}

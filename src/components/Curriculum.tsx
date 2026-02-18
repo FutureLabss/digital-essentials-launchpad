@@ -118,55 +118,80 @@ const Curriculum = () => {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Group lessons by course/week with proper sequencing and access control
+  // Group lessons by weeks within the monolithic AI Essentials course
   const getWeeksFromData = () => {
-    if (!courses || !lessons) return [];
+    if (!courses || courses.length === 0 || !lessons) return [];
     
-    // Sort courses by created_at to ensure proper week ordering
-    const sortedCourses = [...courses].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    // Find the AI Essentials course (should be the only published one)
+    const aiEssentialsCourse = courses.find(c => c.title === 'AI Essentials');
+    if (!aiEssentialsCourse) return [];
     
-    // Get enrolled course IDs
-    const enrolledCourseIds = enrollments ? enrollments.map(e => e.course_id) : [];
+    // Get lessons for this course
+    const courseLessons = lessons
+      .filter(l => l.course_id === aiEssentialsCourse.id)
+      .sort((a, b) => a.sort_order - b.sort_order); // Sort lessons within the course
     
-    // Check if Week 1 is completed to unlock Week 2
-    const week1Course = sortedCourses.find(c => c.title?.includes("Week 1") || c.created_at === sortedCourses[0]?.created_at);
-    const week1Lessons = lessons.filter(l => l.course_id === week1Course?.id);
-    const week1Completed = week1Lessons.length > 0 && week1Lessons.every(lesson => 
-      lessonProgress.some(progress => progress.lesson_id === lesson.id && progress.completed)
-    );
+    // Group lessons into weeks (assuming 6 lessons per week)
+    const weeksData = [];
+    const LESSONS_PER_WEEK = 6;
     
-    return sortedCourses.map((course, index) => {
-      const courseLessons = lessons
-        .filter(l => l.course_id === course.id)
-        .sort((a, b) => a.sort_order - b.sort_order); // Sort lessons within each course
+    for (let i = 0; i < courseLessons.length; i += LESSONS_PER_WEEK) {
+      const weekLessons = courseLessons.slice(i, i + LESSONS_PER_WEEK);
+      const weekNumber = Math.floor(i / LESSONS_PER_WEEK) + 1;
       
-      const weekNumber = index + 1;
-      const isEnrolled = enrolledCourseIds.includes(course.id);
+      // Get enrolled course IDs (for the monolithic course)
+      const enrolledCourseIds = enrollments ? enrollments.map(e => e.course_id) : [];
+      const isEnrolled = enrolledCourseIds.includes(aiEssentialsCourse.id);
       
-      // Access logic: Week 1 always accessible, Week 2 accessible if Week 1 completed OR if free, others need enrollment
-      let canAccess = weekNumber === 1 || isEnrolled;
-      if (weekNumber === 2) {
-        // Week 2 is accessible if enrolled OR if Week 1 is completed OR if it's a free course
-        const week2Course = sortedCourses.find(c => c.title?.includes("Week 2") || c.created_at === sortedCourses[1]?.created_at);
-        if (week2Course && week2Course.price === 0) {
-          canAccess = true; // Free course - always accessible
-        } else if (week1Completed) {
-          canAccess = true; // Paid course but Week 1 completed - unlock
+      // Access logic for monolithic course:
+      // Week 1: Always accessible
+      // Week 2-6: Accessible if enrolled OR if previous week is completed
+      let canAccess = weekNumber === 1; // Week 1 always accessible
+      
+      if (weekNumber > 1) {
+        // Check if user is enrolled in the course
+        if (isEnrolled) {
+          canAccess = true;
+        } else {
+          // Check if previous week is completed
+          const prevWeekStartIndex = (weekNumber - 2) * LESSONS_PER_WEEK;
+          const prevWeekLessons = courseLessons.slice(prevWeekStartIndex, prevWeekStartIndex + LESSONS_PER_WEEK);
+          
+          const prevWeekCompleted = prevWeekLessons.length > 0 && prevWeekLessons.every(lesson => 
+            lessonProgress.some(progress => progress.lesson_id === lesson.id && progress.completed)
+          );
+          
+          if (prevWeekCompleted) {
+            canAccess = true;
+          }
         }
       }
       
-      return {
+      weeksData.push({
         week: weekNumber,
-        title: course.title || `Week ${weekNumber}`,
-        description: course.short_description || course.description || "",
-        lessons: courseLessons,
-        course_id: course.id,
+        title: `Week ${weekNumber}`,
+        description: getWeekDescription(weekNumber),
+        lessons: weekLessons,
+        course_id: aiEssentialsCourse.id,
         isLocked: !canAccess,
         isEnrolled
-      };
-    });
+      });
+    }
+    
+    return weeksData;
+  };
+  
+  // Helper function to get week descriptions
+  const getWeekDescription = (weekNumber: number) => {
+    const descriptions = {
+      1: "Introduction to Artificial Intelligence fundamentals and core concepts",
+      2: "Master AI-powered content creation, writing, and prompt engineering",
+      3: "Advanced content strategies, marketing copy, and AI tools mastery", 
+      4: "AI image generation, visual content creation, and design workflows",
+      5: "Quality control, consistency, and building comprehensive AI systems",
+      6: "Advanced AI implementation, automation, and professional applications"
+    };
+    return descriptions[weekNumber as keyof typeof descriptions] || `Week ${weekNumber} content`;
   };
 
   const skills = [
